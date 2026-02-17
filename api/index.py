@@ -17,12 +17,14 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-client = OpenAI(
-    base_url="https://router.huggingface.co/v1",
-    api_key=os.environ["OPENAI_API_KEY"],  
-)
+def _get_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    return OpenAI(
+        base_url="https://router.huggingface.co/v1",
+        api_key=api_key,
+    )
 
 class ChatRequest(BaseModel):
     message: str
@@ -37,9 +39,13 @@ def health():
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
-    
+    client = _get_client()
+    if not client:
+        raise HTTPException(
+            status_code=500,
+            detail="OPENAI_API_KEY not configured. Add it in Vercel Project Settings → Environment Variables.",
+        )
+
     try:
         user_message = request.message
         response = client.chat.completions.create(

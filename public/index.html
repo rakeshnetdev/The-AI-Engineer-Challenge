@@ -299,9 +299,7 @@
   </div>
 
   <script>
-    const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://127.0.0.1:8000/api/chat'
-      : '/api/chat';
+    const API_URL = '/api/chat';
     const chatContainer = document.getElementById('chatContainer');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -381,7 +379,7 @@
         addMessage('bot', reply || '(No response)');
         messages.push({ role: 'bot', content: reply });
       } catch (err) {
-        let errMsg = 'Failed to connect. Is the API running at http://127.0.0.1:8000?';
+        let errMsg = 'Failed to connect to the chat API.';
         if (err.message) errMsg += ` (${err.message})`;
         addMessage('bot', errMsg, true);
       } finally {
