@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-input: #21262d;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --user-bubble: #1f6feb;
+      --bot-bubble: #21262d;
+      --accent: #58a6ff;
+      --error: #f85149;
+      --success: #3fb950;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: var(--bg-secondary);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--border);
+      border-color: var(--text-secondary);
+    }
+
+    .btn-clear {
+      color: var(--error);
+    }
+
+    .btn-clear:hover {
+      background: rgba(248, 81, 73, 0.15);
+      border-color: var(--error);
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 1.5rem 1.5rem 8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 0;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 0.875rem 1.125rem;
+      border-radius: 12px;
+      animation: fadeIn 0.3s ease-out;
+      word-wrap: break-word;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.error {
+      align-self: center;
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+
+    .message .label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      margin-bottom: 0.25rem;
+    }
+
+    .input-area {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1rem 1.5rem 1.5rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 1rem;
+      resize: none;
+      min-height: 48px;
+      max-height: 160px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    #messageInput:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+    }
+
+    #messageInput::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .btn-send {
+      flex-shrink: 0;
+      padding: 0.875rem 1.25rem;
+      background: var(--user-bubble);
+      border: none;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: #388bfd;
+      transform: scale(1.02);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.125rem;
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      align-self: flex-start;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .message {
+        max-width: 95%;
+      }
+
+      .header {
+        padding: 0.75rem 1rem;
+      }
+
+      .header h1 {
+        font-size: 1rem;
+      }
+
+      .chat-container {
+        padding: 1rem;
+      }
+
+      .input-area {
+        padding: 0.75rem 1rem 1rem;
+      }
+
+      .input-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn-send {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Chat</h1>
+    <div class="header-actions">
+      <button class="btn btn-clear" id="clearBtn" type="button">Clear chat</button>
+    </div>
+  </header>
+
+  <main class="chat-container" id="chatContainer">
+    <div class="empty-state" id="emptyState">Send a message to start the conversation.</div>
+  </main>
+
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea
+        id="messageInput"
+        placeholder="Type a message..."
+        rows="1"
+        aria-label="Message input"
+      ></textarea>
+      <button class="btn-send" id="sendBtn" type="button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:8000/api/chat';
+    const chatContainer = document.getElementById('chatContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const emptyState = document.getElementById('emptyState');
+
+    let messages = [];
+
+    function showEmptyState(show) {
+      emptyState.style.display = show ? 'flex' : 'none';
+    }
+
+    function addMessage(role, content, isError = false) {
+      showEmptyState(false);
+      const div = document.createElement('div');
+      div.className = `message ${isError ? 'error' : role}`;
+      const label = role === 'user' ? 'You' : 'Assistant';
+      div.innerHTML = `<span class="label">${label}</span><div class="content">${escapeHtml(content)}</div>`;
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    function showLoading() {
+      const div = document.createElement('div');
+      div.className = 'loading';
+      div.id = 'loadingIndicator';
+      div.innerHTML = '<div class="spinner"></div><span>Thinking...</span>';
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function hideLoading() {
+      const el = document.getElementById('loadingIndicator');
+      if (el) el.remove();
+    }
+
+    function setLoading(loading) {
+      sendBtn.disabled = loading;
+      messageInput.disabled = loading;
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+
+      addMessage('user', text);
+      messages.push({ role: 'user', content: text });
+
+      showLoading();
+      setLoading(true);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const errMsg = data.detail || data.message || `Request failed (${res.status})`;
+          addMessage('bot', `Error: ${errMsg}`, true);
+          return;
+        }
+
+        const reply = data.reply || '';
+        addMessage('bot', reply || '(No response)');
+        messages.push({ role: 'bot', content: reply });
+      } catch (err) {
+        let errMsg = 'Failed to connect. Is the API running at http://127.0.0.1:8000?';
+        if (err.message) errMsg += ` (${err.message})`;
+        addMessage('bot', errMsg, true);
+      } finally {
+        hideLoading();
+        setLoading(false);
+        messageInput.focus();
+      }
+    }
+
+    function clearChat() {
+      messages = [];
+      while (chatContainer.firstChild) {
+        chatContainer.removeChild(chatContainer.firstChild);
+      }
+      chatContainer.appendChild(emptyState);
+      showEmptyState(true);
+    }
+
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    messageInput.addEventListener('input', () => {
+      messageInput.style.height = 'auto';
+      messageInput.style.height = Math.min(messageInput.scrollHeight, 160) + 'px';
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    clearBtn.addEventListener('click', clearChat);
+  </script>
+</body>
+</html>
