@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import os
@@ -30,12 +33,17 @@ class ChatRequest(BaseModel):
     message: str
 
 @app.get("/")
-def root():
-    return {"status": "ok"}
+def ui():
+    """Serve the chat frontend at /ui."""
+    root_dir = Path(__file__).resolve().parent.parent
+    for path in (root_dir / "public" / "index.html", root_dir / "frontend" / "index.html"):
+        if path.exists():
+            return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Frontend not found")
 
 @app.get("/api/health")
 def health():
-    return {"health": "ok"}
+    return {"status": "ok"}
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
