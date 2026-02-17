@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 app = FastAPI()
 
@@ -17,7 +17,12 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+client = OpenAI(
+    base_url="https://router.huggingface.co/v1",
+    api_key=os.environ["OPENAI_API_KEY"],  
+)
 
 class ChatRequest(BaseModel):
     message: str
@@ -25,6 +30,10 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def root():
     return {"status": "ok"}
+
+@app.get("/api/health")
+def health():
+    return {"health": "ok"}
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
@@ -34,7 +43,7 @@ def chat(request: ChatRequest):
     try:
         user_message = request.message
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="moonshotai/Kimi-K2-Instruct-0905:together",  # Or :fastest, :fireworks-ai, etc.
             messages=[
                 {"role": "system", "content": "You are a supportive mental coach."},
                 {"role": "user", "content": user_message}
